@@ -32,10 +32,10 @@ udp_streams = {}
 # Current stream id
 cur_stream_id = 0
 
-def usage(exeName) :
+def usage(exeName):
     errmsg = "Usage: %s -i <pcap-file> -o <sqlite-file>"
-    errmsg = errmsg % exeName
-    print >> sys.stderr, errmsg
+    errmsg %= exeName
+    errmsg = "Usage: %s -i <pcap-file> -o <sqlite-file>"
     sys.exit(-1)
 
 class FiveTuple(object):
@@ -182,7 +182,7 @@ def db_add_tcp_stream_segments(builder, tcp_stream):
             # Note: delay creating the stream until we have a via chunk to
             # commit to it
             #
-            if streamID == None:
+            if streamID is None:
                 streamID = newStream(tcp_stream.five_tuple)
             builder.add_chunk(streamID, tcp_segment.tcp_payload)
             last_sequence_num =  tcp_segment.tcp_sequence_number
@@ -197,11 +197,15 @@ def db_add_udp_stream_segments(builder, udp_stream):
     streamID = None
     for udp_segment in udp_segments:
         if len(udp_segment.udp_payload) > 0:
-            if streamID == None:
+            if streamID is None:
                 streamID = newStream(udp_stream.five_tuple)
             builder.add_chunk(streamID, udp_segment.udp_payload)
 
 def enchunk_pcap(pcapFN, sqliteFN):
+    """Read the contents of a pcap file with name @pcapFN and produce
+    a sqlite db with name @sqliteFN. It will contain chunks of data
+    from TCP and UDP streams,
+    """
     """Read the contents of a pcap file with name @pcapFN and produce
     a sqlite db with name @sqliteFN. It will contain chunks of data
     from TCP and UDP streams,
@@ -252,7 +256,7 @@ def enchunk_pcap(pcapFN, sqliteFN):
         ip_pkt = packet[ip_pkt_off:ip_pkt_off + ip_pkt_total_len]
         pkt_protocol = struct.unpack('B', ip_pkt[9])[0]
 
-        if (pkt_protocol != IPPROTO_UDP) and (pkt_protocol != IPPROTO_TCP):
+        if pkt_protocol not in [IPPROTO_UDP, IPPROTO_TCP]:
             #
             # we're only interested in UDP and TCP packets at the moment
             #
@@ -262,22 +266,22 @@ def enchunk_pcap(pcapFN, sqliteFN):
         pkt_dst_addr = inet_ntoa(ip_pkt[16:20])
 
         ip_hdr_len_offset = (ord(ip_pkt[0]) & 0x0f) * 4
-        ip_payload = ip_pkt[ip_hdr_len_offset:len(ip_pkt)]
+        ip_payload = ip_pkt[ip_hdr_len_offset:]
 
-        pkt_src_port, pkt_dst_port = struct.unpack('!HH', ip_payload[0:4])
+        pkt_src_port, pkt_dst_port = struct.unpack('!HH', ip_payload[:4])
         five_tuple = FiveTuple(pkt_protocol, pkt_src_addr, pkt_src_port, pkt_dst_addr, pkt_dst_port)
         five_tuple_id = str(five_tuple)
 
         if pkt_protocol == IPPROTO_UDP:
             udp_payload_len = struct.unpack('!H', ip_payload[4:6])[0] - 8
-            udp_header = ip_payload[0:8]
-            udp_payload = ip_payload[8:len(ip_payload)]
+            udp_header = ip_payload[:8]
+            udp_payload = ip_payload[8:]
             udp_segment = UdpSegment(five_tuple, udp_header, udp_payload)
             process_udp_segment(builder, udp_segment)
         elif pkt_protocol == IPPROTO_TCP:
             tcp_hdr_len = (ord(ip_payload[12]) >> 4) * 4
-            tcp_header = ip_payload[0:tcp_hdr_len]
-            tcp_payload = ip_payload[tcp_hdr_len:len(ip_payload)]
+            tcp_header = ip_payload[:tcp_hdr_len]
+            tcp_payload = ip_payload[tcp_hdr_len:]
             segment = TcpSegment(five_tuple, tcp_header, tcp_payload)
             process_tcp_segment(builder, segment)
 
@@ -296,7 +300,7 @@ def enchunk_pcap(pcapFN, sqliteFN):
     #
     builder.finish()
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
 
     args = getopt.getopt(sys.argv[1:], 'i:o:')
     args = dict(args[0])
@@ -306,5 +310,5 @@ if __name__ == '__main__' :
         if not args.has_key(k) :
             usage(os.path.basename(sys.argv[0]))
 
-    fnArgs = tuple([ args[k] for k in requiredKeys ])
+    fnArgs = tuple(args[k] for k in requiredKeys)
     enchunk_pcap(*fnArgs)

@@ -36,8 +36,8 @@ def lineCorpus(inFN, outFN):
 
 def usage(exeName):
     errmsg = "Usage: %s -i <input file> -o <output file>"
-    errmsg = errmsg % exeName
-    print >> sys.stderr, errmsg
+    errmsg %= exeName
+    errmsg = "Usage: %s -i <input file> -o <output file>"
     sys.exit(-1)
 
 if __name__ == '__main__':
@@ -49,5 +49,5 @@ if __name__ == '__main__':
         if not args.has_key(k):
             usage(os.path.basename(sys.argv[0]))
 
-    fnArgs = tuple([args[k] for k in requiredKeys])
+    fnArgs = tuple(args[k] for k in requiredKeys)
     lineCorpus(*fnArgs)

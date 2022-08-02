@@ -52,8 +52,8 @@ def buildCorpus(outFN, block_size, stream_size, text_ids):
 
 def usage(exeName):
     errmsg = "Usage: %s -o <output file> -b <block size> -s <max stream size> <gutenberg text id>..."
-    errmsg = errmsg % exeName
-    print >> sys.stderr, errmsg
+    errmsg %= exeName
+    errmsg = "Usage: %s -o <output file> -b <block size> -s <max stream size> <gutenberg text id>..."
     sys.exit(-1)
 
 if __name__ == '__main__':

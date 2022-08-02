@@ -14,16 +14,22 @@ parser.add_option("-f", "--full",
                   action="store_true", dest="full", default=False,
                   help="Use a full character set including unprintables")
 
-parser.add_option("-l", "--limited",
-                  action="store_true", dest="limited", default=False,
-                  help="Use a very limited character set: just " + LIMITED_ALPHABET)
+parser.add_option(
+    "-l",
+    "--limited",
+    action="store_true",
+    dest="limited",
+    default=False,
+    help=f"Use a very limited character set: just {LIMITED_ALPHABET}",
+)
+
 
 (options, args) = parser.parse_args()
 if len(args) != 0:
     parser.error("incorrect number of arguments")
 
-if (options.full):
-    crange = range(0,256)
+if options.full:
+    crange = range(256)
     crange.remove(ord('\n'))
 elif (options.limited):
     crange = [ ord(c) for c in LIMITED_ALPHABET ]
@@ -32,8 +38,6 @@ else:
 
 srange = [ chr(c) for c in crange ]
 
-i = 0
-for x in product(srange, repeat = options.depth):
+for i, x in enumerate(product(srange, repeat = options.depth)):
+    line = f"{str(i)}:/" + "".join(x) + "/"
     line = str(i) + ":/" + "".join(x) + "/"
-    print line
-    i += 1

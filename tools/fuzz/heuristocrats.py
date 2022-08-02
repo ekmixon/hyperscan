@@ -12,8 +12,7 @@ def chooseLeafWidth(nChildren):
     s = sample(range(1, nChildren), width)
     s.sort()
     s = [0] + s + [nChildren]
-    v = [ s[i+1] - s[i] for i in range(0, len(s)-1) if s[i+1] != s[i] ]
-    return v
+    return [s[i+1] - s[i] for i in range(len(s)-1) if s[i+1] != s[i]]
 
 def generateConcat(nChildren, atTopIgnored):
     v = [ generateRE(w, atTop = False) for w in chooseLeafWidth(nChildren) ]
@@ -22,19 +21,13 @@ def generateConcat(nChildren, atTopIgnored):
 
 def makeGroup(s):
     # Parenthesise either in normal parens or a non-capturing group.
-    if randint(0, 1) == 0:
-        return "(" + s + ")"
-    else:
-        return "(?:" + s + ")"
+    return f"({s})" if randint(0, 1) == 0 else f"(?:{s})"
 
 def generateAlt(nChildren, atTop):
     v = [ generateRE(w, [generateAlt], atTop) for w in chooseLeafWidth(nChildren) ]
-    v = [ r for r in v if r != '' ]	
+    v = [ r for r in v if r != '' ]
     s = string.join(v, "|")
-    if len(v) == 1:
-	    return s
-    else:
-        return makeGroup(s)
+    return s if len(v) == 1 else makeGroup(s)
 
 def generateQuant(nChildren, atTopIgnored):
     lo = int(round(expovariate(0.2)))
@@ -52,10 +45,7 @@ def generateChar(nChildren, atTop = False):
 def generateNocaseChar(nChildren, atTop = False):
     'Either generate an uppercase char from the alphabet or a nocase class [Aa]'
     c = generateChar(nChildren, atTop)
-    if random() < 0.5:
-        return c.upper()
-    else:
-        return '[' + c.upper() + c.lower() + ']'
+    return c.upper() if random() < 0.5 else f'[{c.upper()}{c.lower()}]'
 
 def generateDot(nChildren, atTop = False):
     return "."
@@ -73,44 +63,37 @@ def generateCharClass(nChildren, atTop = False):
     else:
         nChars = randint(2,4)
 
-    for i in xrange(nChars):
+    for _ in xrange(nChars):
         s += generateChar(1)
-    return "[" + s + "]"
+    return f"[{s}]"
 
 def generateOptionsFlags(nChildren, atTop = False):
     allflags = "smix"
     pos_flags = sample(allflags, randint(1, len(allflags)))
     neg_flags = sample(allflags, randint(1, len(allflags)))
-    s = '(?' + ''.join(pos_flags) + '-' + ''.join(neg_flags) + ')'
-    return s 
+    return '(?' + ''.join(pos_flags) + '-' + ''.join(neg_flags) + ')' 
 
 def generateLogicalId(nChildren, atTop = False):
     return str(randint(0, options.count))
 
 def makeLogicalGroup(s):
-    return "(" + s + ")"
+    return f"({s})"
 
 def generateLogicalNot(nChildren, atTop):
     r = generateCombination(nChildren, [generateLogicalNot], atTop = False)
-    return "!" + makeLogicalGroup(r)
+    return f"!{makeLogicalGroup(r)}"
 
 def generateLogicalAnd(nChildren, atTop):
     v = [ generateCombination(w, [generateLogicalAnd], atTop = False) for w in chooseLeafWidth(nChildren) ]
     v = [ r for r in v if r != '' ]
     s = string.join(v, "&")
-    if len(v) == 1:
-	    return s
-    else:
-        return makeLogicalGroup(s)
+    return s if len(v) == 1 else makeLogicalGroup(s)
 
 def generateLogicalOr(nChildren, atTop):
     v = [ generateCombination(w, [generateLogicalOr], atTop = False) for w in chooseLeafWidth(nChildren) ]
     v = [ r for r in v if r != '' ]
     s = string.join(v, "|")
-    if len(v) == 1:
-	    return s
-    else:
-        return makeLogicalGroup(s)
+    return s if len(v) == 1 else makeLogicalGroup(s)
 
 weightsTree = [
     (generateConcat, 10),
@@ -162,11 +145,7 @@ weightsAnchor = [
 choicesAnchor = genChoices(weightsAnchor)
 
 def generateRE(nChildren, suppressList = [], atTop = False):
-    if atTop:
-        anchorSubstituteString = choice(choicesAnchor)
-    else:
-        anchorSubstituteString = "%s"
-
+    anchorSubstituteString = choice(choicesAnchor) if atTop else "%s"
     nChildren -= 1
     if nChildren == 0:
         res = choice(choicesLeaf)(nChildren, atTop)
@@ -179,22 +158,13 @@ def generateRE(nChildren, suppressList = [], atTop = False):
 def generateCombination(nChildren, suppressList = [], atTop = False):
     nChildren -= 1
     if nChildren == 0:
-        res = choice(choicesLogicalLeaf)(nChildren, atTop)
-    else:
-        c = [ ch for ch in choicesLogicalTree if ch not in suppressList ]
-        res = choice(c)(nChildren, atTop)
-
-    return res
+        return choice(choicesLogicalLeaf)(nChildren, atTop)
+    c = [ ch for ch in choicesLogicalTree if ch not in suppressList ]
+    return choice(c)(nChildren, atTop)
 
 def generateRandomOptions():
-    if options.hybrid:
-        allflags = "smiH8W"
-    else:
-        # Maintain an ordering for consistency.
-        allflags = "smiHV8WLP"
-    flags = ""
-    for f in allflags:
-        flags += choice(['', f])
+    allflags = "smiH8W" if options.hybrid else "smiHV8WLP"
+    flags = "".join(choice(['', f]) for f in allflags)
     if options.logical:
         flags += choice(['', 'Q'])
     return flags
@@ -215,10 +185,7 @@ def generateRandomExtParam(depth, extparam):
             params.append("edit_distance=%u" % dist)
         else:
             params.append("hamming_distance=%u" % dist)
-    if params:
-        return "{" + ",".join(params) + "}"
-    else:
-        return ""
+    return "{" + ",".join(params) + "}" if params else ""
 
 parser = OptionParser()
 parser.add_option("-d", "--depth",

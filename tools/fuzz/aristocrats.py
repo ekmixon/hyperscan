@@ -4,15 +4,8 @@ from random import choice,randint
 from optparse import OptionParser
 
 def generateRandomOptions():
-    if options.hybrid:
-        allflags = "smiH8W"
-    else:
-        # Maintain an ordering for consistency.
-        allflags = "smiHV8WLP"
-    flags = ""
-    for f in allflags:
-        flags += choice(['', f])
-    return flags
+    allflags = "smiH8W" if options.hybrid else "smiHV8WLP"
+    return "".join(choice(['', f]) for f in allflags)
 
 parser = OptionParser()
 parser.add_option("-d", "--depth",
